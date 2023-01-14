@@ -12,7 +12,8 @@ from src.ui.main_ui import Ui_Dialog as Main_UI
 from src.ui.results import Results_Dialog
 from src.ui.splash import Splash_Dialog
 from src.utils.enumerators import BBFormat, BBType, CoordinatesType
-
+import matplotlib.pyplot as plt
+from datetime import datetime as dt
 
 class Main_Dialog(QMainWindow, Main_UI):
     def __init__(self):
@@ -33,6 +34,26 @@ class Main_Dialog(QMainWindow, Main_UI):
         self.dir_dets = None
         self.filepath_classes_det = None
         self.dir_save_results = None
+
+        self.repo_evaldata = []
+
+        if self.txb_gt_dir.text() == '':
+            txt = self.current_directory
+        else:
+            txt = self.txb_gt_dir.text()
+        self.dir_annotations_gt = txt
+
+        if self.txb_gt_images_dir.text() == '':
+            txt = self.current_directory
+        else:
+            txt = self.txb_gt_images_dir.text()
+        self.dir_images_gt = txt
+
+        if self.txb_det_dir.text() == '':
+            txt = self.current_directory
+        else:
+            txt = self.txb_det_dir.text()
+        self.dir_dets = txt
 
         self.center_screen()
 
@@ -65,35 +86,43 @@ class Main_Dialog(QMainWindow, Main_UI):
         return self.msgBox.exec()
 
     def load_annotations_gt(self):
-        ret = []
+        ret, allclass_dict = [], {}
+
         if self.rad_gt_format_coco_json.isChecked():
-            ret = converter.coco2bb(self.dir_annotations_gt)
+            ret, allclass_dict = converter.coco2bb(self.dir_annotations_gt)
+        elif self.rad_gt_format_gdd_json.isChecked():
+            ret, allclass_dict = converter.gddJson2bb(self.dir_annotations_gt, self.dir_images_gt)
         elif self.rad_gt_format_cvat_xml.isChecked():
-            ret = converter.cvat2bb(self.dir_annotations_gt)
+            ret, allclass_dict = converter.cvat2bb(self.dir_annotations_gt)
         elif self.rad_gt_format_openimages_csv.isChecked():
-            ret = converter.openimage2bb(self.dir_annotations_gt, self.dir_images_gt,
+            ret, allclass_dict = converter.openimage2bb(self.dir_annotations_gt, self.dir_images_gt,
                                          BBType.GROUND_TRUTH)
         elif self.rad_gt_format_labelme_xml.isChecked():
-            ret = converter.labelme2bb(self.dir_annotations_gt)
+            ret, allclass_dict = converter.labelme2bb(self.dir_annotations_gt)
         elif self.rad_gt_format_pascalvoc_xml.isChecked():
-            ret = converter.vocpascal2bb(self.dir_annotations_gt)
+            ret, allclass_dict = converter.vocpascal2bb(self.dir_annotations_gt)
         elif self.rad_gt_format_imagenet_xml.isChecked():
-            ret = converter.imagenet2bb(self.dir_annotations_gt)
+            ret, allclass_dict = converter.imagenet2bb(self.dir_annotations_gt)
         elif self.rad_gt_format_abs_values_text.isChecked():
-            ret = converter.text2bb(self.dir_annotations_gt, bb_type=BBType.GROUND_TRUTH)
+            ret, allclass_dict = converter.text2bb(self.dir_annotations_gt, bb_type=BBType.GROUND_TRUTH)
         elif self.rad_gt_format_yolo_text.isChecked():
-            ret = converter.yolo2bb(self.dir_annotations_gt,
+            ret, allclass_dict = converter.yolo2bb(self.dir_annotations_gt,
                                     self.dir_images_gt,
                                     self.filepath_classes_gt,
                                     bb_type=BBType.GROUND_TRUTH)
         # Make all types as GT
         [bb.set_bb_type(BBType.GROUND_TRUTH) for bb in ret]
-        return ret
+
+        # insert items into combo box
+        for id, desc in allclass_dict.items():
+            self.comb_targetClass.addItem(desc)
+
+        return ret, allclass_dict, self.txb_gt_version.text()
 
     def validate_det_choices(self):
         # If relative format was required, directory with images have to be valid
         if self.rad_det_ci_format_text_yolo_rel.isChecked(
-        ) or self.rad_det_cn_format_text_yolo_rel.isChecked():
+        ) or self.rad_det_cn_format_text_yolo_rel.isChecked() or self.rad_det_format_gdd_json.isChecked():
             # Verify if directory with images was provided
             valid_image_dir = False
             if self.dir_images_gt is not None and os.path.isdir(self.dir_images_gt):
@@ -128,29 +157,31 @@ class Main_Dialog(QMainWindow, Main_UI):
         return True
 
     def load_annotations_det(self):
-        ret = []
+        ret, allclass_dict = [], {}
         if not self.validate_det_choices():
-            return ret, False
+            return ret, False, None, self.txb_det_version.text()
 
         if self.rad_det_format_coco_json.isChecked():
-            ret = converter.coco2bb(self.dir_dets, bb_type=BBType.DETECTED)
+            ret, allclass_dict = converter.coco2bb(self.dir_dets, bb_type=BBType.DETECTED)
+        elif self.rad_det_format_gdd_json.isChecked():
+            ret, allclass_dict = converter.gddJson2bb(self.dir_dets, self.dir_images_gt, bb_type=BBType.DETECTED)
         elif self.rad_det_ci_format_text_yolo_rel.isChecked(
         ) or self.rad_det_cn_format_text_yolo_rel.isChecked():
-            ret = converter.text2bb(self.dir_dets,
+            ret, allclass_dict = converter.text2bb(self.dir_dets,
                                     bb_type=BBType.DETECTED,
                                     bb_format=BBFormat.YOLO,
                                     type_coordinates=CoordinatesType.RELATIVE,
                                     img_dir=self.dir_images_gt)
         elif self.rad_det_ci_format_text_xyx2y2_abs.isChecked(
         ) or self.rad_det_cn_format_text_xyx2y2_abs.isChecked():
-            ret = converter.text2bb(self.dir_dets,
+            ret, allclass_dict = converter.text2bb(self.dir_dets,
                                     bb_type=BBType.DETECTED,
                                     bb_format=BBFormat.XYX2Y2,
                                     type_coordinates=CoordinatesType.ABSOLUTE,
                                     img_dir=self.dir_images_gt)
         elif self.rad_det_ci_format_text_xywh_abs.isChecked(
         ) or self.rad_det_cn_format_text_xywh_abs.isChecked():
-            ret = converter.text2bb(self.dir_dets,
+            ret, allclass_dict = converter.text2bb(self.dir_dets,
                                     bb_type=BBType.DETECTED,
                                     bb_format=BBFormat.XYWH,
                                     type_coordinates=CoordinatesType.ABSOLUTE,
@@ -162,16 +193,23 @@ class Main_Dialog(QMainWindow, Main_UI):
                 'No file was found',
                 buttons=QMessageBox.Ok,
                 icon=QMessageBox.Information)
-            return ret, False
+            return ret, False, allclass_dict, self.txb_det_version.text()
 
         # If detection requires class_id, replace the detection names (integers) by a class from the txt file
         if self.rad_det_ci_format_text_yolo_rel.isChecked(
         ) or self.rad_det_ci_format_text_xyx2y2_abs.isChecked(
         ) or self.rad_det_ci_format_text_xywh_abs.isChecked():
             ret = general_utils.replace_id_with_classes(ret, self.filepath_classes_det)
-        return ret, True
+
+        return ret, True, allclass_dict, self.txb_det_version.text()
 
     def btn_gt_statistics_clicked(self):
+
+        self.btn_output_dir_clicked(skipChoose=True)
+        self.btn_det_dir_clicked(skipChoose=True)
+        self.btn_gt_images_dir_clicked(skipChoose=True)
+        self.btn_gt_dir_clicked(skipChoose=True)
+
         # If yolo format is selected, file with classes must be informed
         if self.rad_gt_format_yolo_text.isChecked():
             if self.filepath_classes_gt is None or os.path.isfile(
@@ -183,7 +221,7 @@ class Main_Dialog(QMainWindow, Main_UI):
                     icon=QMessageBox.Information)
                 return
 
-        gt_annotations = self.load_annotations_gt()
+        gt_annotations, allclass_dict, gt_version = self.load_annotations_gt()
         if gt_annotations is None or len(gt_annotations) == 0:
             self.show_popup(
                 'Directory with ground-truth annotations was not specified or do not contain annotations in the chosen format.',
@@ -198,17 +236,24 @@ class Main_Dialog(QMainWindow, Main_UI):
                 buttons=QMessageBox.Ok,
                 icon=QMessageBox.Information)
             return
-        # Open statistics dialot on the gt annotations
+        # Open statistics dialog on the gt annotations
         self.dialog_statistics.show_dialog(BBType.GROUND_TRUTH, gt_annotations, None,
-                                           self.dir_images_gt)
+                                           gt_version=gt_version, det_version=None,
+                                           allclass_dict=allclass_dict,
+                                           dir_images=self.dir_images_gt)
 
-    def btn_gt_dir_clicked(self):
+    def btn_gt_dir_clicked(self, skipChoose=False):
         if self.txb_gt_dir.text() == '':
             txt = self.current_directory
         else:
             txt = self.txb_gt_dir.text()
-        directory = QFileDialog.getExistingDirectory(
+
+        if not skipChoose:
+            directory = QFileDialog.getExistingDirectory(
             self, 'Choose directory with ground truth annotations', txt)
+        else:
+            directory = txt
+
         if directory == '':
             return
         if os.path.isdir(directory):
@@ -228,14 +273,19 @@ class Main_Dialog(QMainWindow, Main_UI):
         else:
             self.filepath_classes_gt = None
 
-    def btn_gt_images_dir_clicked(self):
+    def btn_gt_images_dir_clicked(self, skipChoose=False):
         if self.txb_gt_images_dir.text() == '':
             txt = self.current_directory
         else:
             txt = self.txb_gt_images_dir.text()
-        directory = QFileDialog.getExistingDirectory(self,
+
+        if not skipChoose:
+            directory = QFileDialog.getExistingDirectory(self,
                                                      'Choose directory with ground truth images',
                                                      txt)
+        else:
+            directory = txt
+
         if directory != '':
             self.txb_gt_images_dir.setText(directory)
             self.dir_images_gt = directory
@@ -252,12 +302,16 @@ class Main_Dialog(QMainWindow, Main_UI):
             self.filepath_classes_det = None
             self.txb_classes_det.setText('')
 
-    def btn_det_dir_clicked(self):
+    def btn_det_dir_clicked(self, skipChoose=False):
         if self.txb_det_dir.text() == '':
             txt = self.current_directory
         else:
             txt = self.txb_det_dir.text()
-        directory = QFileDialog.getExistingDirectory(self, 'Choose directory with detections', txt)
+        if not skipChoose:
+            directory = QFileDialog.getExistingDirectory(self, 'Choose directory with detections', txt)
+        else:
+            directory = txt
+
         if directory == '':
             return
         if os.path.isdir(directory):
@@ -267,10 +321,15 @@ class Main_Dialog(QMainWindow, Main_UI):
             self.dir_dets = None
 
     def btn_statistics_det_clicked(self):
-        det_annotations, passed = self.load_annotations_det()
+        self.btn_output_dir_clicked(skipChoose=True)
+        self.btn_det_dir_clicked(skipChoose=True)
+        self.btn_gt_images_dir_clicked(skipChoose=True)
+        self.btn_gt_dir_clicked(skipChoose=True)
+
+        det_annotations, passed, allclass_dict, det_version = self.load_annotations_det()
         if passed is False:
             return
-        gt_annotations = self.load_annotations_gt()
+        gt_annotations, allclass_dict, gt_version = self.load_annotations_gt()
         if self.dir_images_gt is None or os.path.isdir(self.dir_images_gt) is False:
             self.show_popup(
                 'Directory with ground-truth images was not specified or do not contain images.',
@@ -280,15 +339,22 @@ class Main_Dialog(QMainWindow, Main_UI):
             return
         # Open statistics dialog on the detections
         self.dialog_statistics.show_dialog(BBType.DETECTED, gt_annotations, det_annotations,
-                                           self.dir_images_gt)
+                                           gt_version=gt_version, det_version=det_version,
+                                           allclass_dict=allclass_dict,
+                                           dir_images=self.dir_images_gt)
 
-    def btn_output_dir_clicked(self):
+    def btn_output_dir_clicked(self, skipChoose=False):
         if self.txb_output_dir.text() == '':
             txt = self.current_directory
         else:
             txt = self.txb_output_dir.text()
-        directory = QFileDialog.getExistingDirectory(self, 'Choose directory to save the results',
+
+        if not skipChoose:
+            directory = QFileDialog.getExistingDirectory(self, 'Choose directory to save the results',
                                                      txt)
+        else:
+            directory = txt
+
         if os.path.isdir(directory):
             self.txb_output_dir.setText(directory)
             self.dir_save_results = directory
@@ -296,14 +362,18 @@ class Main_Dialog(QMainWindow, Main_UI):
             self.dir_save_results = None
 
     def btn_run_clicked(self):
+        self.btn_output_dir_clicked(skipChoose=True)
+        self.btn_det_dir_clicked(skipChoose=True)
+        self.btn_gt_images_dir_clicked(skipChoose=True)
+        self.btn_gt_dir_clicked(skipChoose=True)
         if self.dir_save_results is None or os.path.isdir(self.dir_save_results) is False:
-            self.show_popup('Output directory to save results was not specified or does not exist.',
-                            'Invalid output directory',
+            self.show_popup('Output directory to save results was not specified or does not exist: {}!'.format(self.dir_save_results),
+                            'Invalid output directory: {} !'.format(self.dir_save_results),
                             buttons=QMessageBox.Ok,
                             icon=QMessageBox.Information)
             return
         # Get detections
-        det_annotations, passed = self.load_annotations_det()
+        det_annotations, passed, allclass_dict, det_version = self.load_annotations_det()
         if passed is False:
             return
         # Verify if there are detections
@@ -315,7 +385,7 @@ class Main_Dialog(QMainWindow, Main_UI):
                 icon=QMessageBox.Information)
             return
 
-        gt_annotations = self.load_annotations_gt()
+        gt_annotations, allclass_dict, gt_version = self.load_annotations_gt()
         if gt_annotations is None or len(gt_annotations) == 0:
             self.show_popup(
                 'No ground-truth bounding box of the selected type was found in the folder.\nCheck if the selected type corresponds to the files in the folder and try again.',
@@ -376,14 +446,49 @@ class Main_Dialog(QMainWindow, Main_UI):
             if 'per_class' in pascal_res:
                 # Save a single plot with all classes
                 plot_precision_recall_curve(pascal_res['per_class'],
+                                            iou_threshold,
                                             mAP=mAP,
+                                            gt_version=gt_version,
+                                            det_version=det_version,
                                             savePath=self.dir_save_results,
                                             showGraphic=False)
                 # Save plots for each class
                 plot_precision_recall_curves(pascal_res['per_class'],
+                                             iou_threshold,
+                                             gt_version=gt_version,
+                                             det_version=det_version,
                                              showAP=True,
                                              savePath=self.dir_save_results,
-                                             showGraphic=False)
+                                             showGraphic=False,
+                                             showF1Score=True,
+                                             showConfidence=True)
+
+                if self.chb_appendCurEvalDataToRepo.isChecked():
+                    results = pascal_res['per_class']
+                    targetclass = self.comb_targetClass.currentText()
+                    result = results.get(targetclass, None) if results is not None else None
+                    if result is not None:
+                        titemidx = -1
+                        for itemidx, item in enumerate(self.repo_evaldata):
+                            if  (item[0] == gt_version and item[1] == det_version):
+                                titemidx = itemidx
+                                break
+                        if titemidx == -1:
+                            self.repo_evaldata.append([])
+                            titemidx = len(self.repo_evaldata) - 1
+
+                        self.repo_evaldata[titemidx] = [
+                            gt_version,
+                            det_version,
+                            targetclass,
+                            iou_threshold,
+                            result['precision'],
+                            result['recall'],
+                            result.get('AP', -1.0),
+                            result.get('f1score', None),
+                            result.get('confidence', None),
+                            result.get('max_f1score', -1.0),
+                            result.get('max_f1score_conf', -1.0)  ]
 
         if len(coco_res) + len(pascal_res) == 0:
             self.show_popup('No results to show',
@@ -391,4 +496,65 @@ class Main_Dialog(QMainWindow, Main_UI):
                             buttons=QMessageBox.Ok,
                             icon=QMessageBox.Information)
         else:
-            self.dialog_results.show_dialog(coco_res, pascal_res, self.dir_save_results)
+            self.dialog_results.show_dialog(coco_res, pascal_res, self.dir_save_results,
+                                            gt_version=gt_version,
+                                            det_version=det_version
+                                            )
+
+    def btn_plotRepoPR_clicked(self):
+        showAP = True
+        showF1Score = self.chb_showF1Score_for_plotRepo.isChecked()
+        showConfidence = self.chb_showConfidence_for_plotRepo.isChecked()
+        plt.close()
+
+        if len(self.repo_evaldata) == 0:
+            QMessageBox.warning(self, "Notification!", "当前repo为空！无数据plot！",
+                                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            return
+
+        plt.figure(figsize=(10, 12), dpi=120)
+        for i, item in enumerate(self.repo_evaldata):
+            gt_version, det_version, targetclass, iou_threshold, precision, recall, average_precision, f1score, confidence, max_f1score, max_f1score_conf = item
+            average_precision = average_precision if showAP else -1.0
+            max_f1score = max_f1score if showF1Score else -1.0
+            max_f1score_conf = max_f1score_conf if showConfidence else -1.0
+
+            plt.xlabel('recall')
+            plt.plot(recall, precision, label=f'{targetclass}: PR@iou{iou_threshold}, AP{average_precision:.3f}, {gt_version}, {det_version}')
+            ylabel = 'precision'
+            subject = 'PR'
+            if showF1Score:
+                ylabel += '/f1score'
+                subject += '/F1Score-R'
+            if showConfidence:
+                ylabel += '/confidence'
+                subject += '/Conf-R'
+            plt.ylabel(ylabel)
+
+            if showF1Score: plt.plot(recall, f1score, label=f'{targetclass}: F1ScoreR@iou{iou_threshold:.2f}, maxf1@conf {max_f1score:.2f}@{max_f1score_conf:.2f}, {gt_version}, {det_version}')
+            if showConfidence: plt.plot(recall, confidence, label=f'{targetclass}: ConfR@iou{iou_threshold:.2f}, {gt_version}, {det_version}')
+
+        titlestr = f"{dt.now().strftime('%Y-%m-%d %H:%M')}"
+        plt.title(titlestr, fontsize=12)
+        print(f"btn_plotRepoPR_clicked plot title = {titlestr}")
+
+        # plt.legend(shadow=True)
+        plt.legend(bbox_to_anchor=(0, 1), loc=3, borderaxespad=3, fontsize=8)
+        plt.grid()
+
+        plt.xlim([-0.1, 1.1])
+        plt.ylim([-0.1, 1.1])
+
+        plt.show()
+
+
+    def chb_appendCurEvalDataToRepo_clicked(self):
+        if self.chb_appendCurEvalDataToRepo.isChecked():
+            if self.comb_targetClass.count() == 0:
+                _, allclass_dict, gt_version = self.load_annotations_gt()
+
+                # insert items into combo box
+                for id, desc in allclass_dict.items():
+                    self.comb_targetClass.addItem(desc)
+
+

@@ -393,7 +393,8 @@
    </property>
    <property name="font">
     <font>
-     <pointsize>18</pointsize>
+     <family>Arial Black</family>
+     <pointsize>14</pointsize>
      <weight>75</weight>
      <bold>true</bold>
     </font>
@@ -561,6 +562,15 @@
         </color>
        </brush>
       </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="NoBrush">
+        <color alpha="128">
+         <red>0</red>
+         <green>0</green>
+         <blue>0</blue>
+        </color>
+       </brush>
+      </colorrole>
      </active>
      <inactive>
       <colorrole role="WindowText">
@@ -701,6 +711,15 @@
       <colorrole role="ToolTipText">
        <brush brushstyle="SolidPattern">
         <color alpha="255">
+         <red>0</red>
+         <green>0</green>
+         <blue>0</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="NoBrush">
+        <color alpha="128">
          <red>0</red>
          <green>0</green>
          <blue>0</blue>
@@ -853,11 +872,21 @@
         </color>
        </brush>
       </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="NoBrush">
+        <color alpha="128">
+         <red>0</red>
+         <green>0</green>
+         <blue>0</blue>
+        </color>
+       </brush>
+      </colorrole>
      </disabled>
     </palette>
    </property>
    <property name="font">
     <font>
+     <family>Arial</family>
      <weight>75</weight>
      <bold>true</bold>
     </font>
@@ -932,6 +961,12 @@
        <width>221</width>
        <height>27</height>
       </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>8</pointsize>
+      </font>
      </property>
      <property name="toolTip">
       <string>The configurations will be applied in a random ground truth image.</string>
@@ -1019,7 +1054,8 @@
      </property>
      <property name="font">
       <font>
-       <pointsize>18</pointsize>
+       <family>Arial Black</family>
+       <pointsize>14</pointsize>
        <weight>75</weight>
        <bold>true</bold>
       </font>
@@ -1107,6 +1143,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>COCO (.json)</string>
       </property>
@@ -1119,12 +1161,13 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>151</width>
+        <width>181</width>
         <height>17</height>
        </rect>
       </property>
       <property name="font">
        <font>
+        <family>Arial Black</family>
         <weight>75</weight>
         <bold>true</bold>
        </font>
@@ -1142,6 +1185,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Ground-truth format provided by PASCAL VOC annotated files (.XML):&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Format: &lt;/span&gt;&amp;lt;class_name&amp;gt; &amp;lt;left&amp;gt; &amp;lt;top&amp;gt; &amp;lt;right&amp;gt; &amp;lt;bottom&amp;gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Coordinates values:&lt;/span&gt; Absolute&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Reference: &lt;/span&gt;&lt;a href=&quot;http://host.robots.ox.ac.uk/pascal/VOC/voc2012/htmldoc/index.html&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;http://host.robots.ox.ac.uk/pascal/VOC/voc2012/htmldoc/index.html&lt;/span&gt;&lt;/a&gt;</string>
       </property>
@@ -1158,6 +1207,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>OpenImage dataset (.csv)</string>
       </property>
@@ -1170,6 +1225,12 @@
         <width>151</width>
         <height>22</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>Label Me (.xml)</string>
@@ -1187,6 +1248,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>PASCAL VOC (.xml)</string>
       </property>
@@ -1202,6 +1269,12 @@
         <width>181</width>
         <height>22</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
       </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&amp;lt;class&amp;gt; &amp;lt;left&amp;gt; &amp;lt;top&amp;gt; &amp;lt;right&amp;gt; &amp;lt;bottom&amp;gt; (ABSOLUTE)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1222,6 +1295,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>(*) YOLO (.txt)</string>
       </property>
@@ -1238,11 +1317,40 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Format:&lt;/span&gt; A unique XML file containing all detections of the dataset in the CVAT format as described at &lt;a href=&quot;https://github.com/openvinotoolkit/cvat/blob/7512fd6883829ff2692ef42a5a41a06f3805da14/cvat/apps/documentation/xml_format.md&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/openvinotoolkit/cvat/blob/7512fd6883829ff2692ef42a5a41a06f3805da14/cvat/apps/documentation/xml_format.md&lt;/span&gt;&lt;/a&gt;</string>
       </property>
       <property name="text">
        <string>CVAT format (.xml)</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="rad_gt_format_gdd_json">
+      <property name="geometry">
+       <rect>
+        <x>750</x>
+        <y>50</y>
+        <width>391</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>GDD annotation json format(similar with COCO
+json format, but no image width, height info)</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
      </widget>
     </widget>
@@ -1272,6 +1380,12 @@
        <width>221</width>
        <height>27</height>
       </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>8</pointsize>
+      </font>
      </property>
      <property name="toolTip">
       <string>The configurations will be applied in a random ground truth image.</string>
@@ -1372,6 +1486,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="toolTip">
        <string/>
       </property>
@@ -1387,12 +1507,13 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>151</width>
+        <width>181</width>
         <height>17</height>
        </rect>
       </property>
       <property name="font">
        <font>
+        <family>Arial Black</family>
         <weight>75</weight>
         <bold>true</bold>
        </font>
@@ -1410,6 +1531,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>(*) &lt;class_id&gt; &lt;confidence&gt; &lt;left&gt; &lt;top&gt; &lt;width&gt; &lt;height&gt; (ABSOLUTE)</string>
       </property>
@@ -1422,6 +1549,12 @@
         <width>531</width>
         <height>22</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>(*) &lt;class_id&gt; &lt;confidence&gt; &lt;left&gt; &lt;top&gt; &lt;right&gt; &lt;bottom&gt; (ABSOLUTE)</string>
@@ -1439,6 +1572,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Format:&lt;/span&gt; A unique json file containing all detections of the dataset in the COCO detection format as described at&lt;span style=&quot; font-weight:600;&quot;/&gt;&lt;a href=&quot;https://cocodataset.org/#format-results&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://cocodataset.org/#format-results&lt;/span&gt;&lt;/a&gt;</string>
       </property>
@@ -1454,6 +1593,12 @@
         <width>531</width>
         <height>22</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>&lt;class_name&gt; &lt;confidence&gt; &lt;left&gt; &lt;top&gt; &lt;right&gt; &lt;bottom&gt; (ABSOLUTE)</string>
@@ -1471,6 +1616,12 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>&lt;class_name&gt; &lt;confidence&gt; &lt;x_center&gt; &lt;y_center&gt; &lt;width&gt; &lt;height&gt; (RELATIVE)</string>
       </property>
@@ -1487,8 +1638,37 @@
         <height>22</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>&lt;class_name&gt; &lt;confidence&gt; &lt;left&gt; &lt;top&gt; &lt;width&gt; &lt;height&gt; (ABSOLUTE)</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="rad_det_format_gdd_json">
+      <property name="geometry">
+       <rect>
+        <x>600</x>
+        <y>110</y>
+        <width>391</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>GDD annotation json format(similar with COCO
+json format, but no image width, height info)</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
      </widget>
     </widget>
@@ -1503,7 +1683,8 @@
      </property>
      <property name="font">
       <font>
-       <pointsize>18</pointsize>
+       <family>Arial Black</family>
+       <pointsize>14</pointsize>
        <weight>75</weight>
        <bold>true</bold>
       </font>

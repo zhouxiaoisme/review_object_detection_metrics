@@ -83,37 +83,47 @@ def convert_to_absolute_values(size, box):
     return (round(x1), round(y1), round(x2), round(y2))
 
 
-def add_bb_into_image(image, bb, color=(255, 0, 0), thickness=2, label=None):
-    r = int(color[0])
-    g = int(color[1])
-    b = int(color[2])
 
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 0.5
-    fontThickness = 1
+def add_bb_into_image(image, bb,
+                       box_thickness=2,
+                       box_color = (255, 0, 0),
+                       text_font = cv2.FONT_HERSHEY_SIMPLEX,
+                       text_color = (255, 0, 0),
+                       text_thickness=1,
+                       text_fontscale = 0.3,
+                       label=None):
+
+    r = int(box_color[0])
+    g = int(box_color[1])
+    b = int(box_color[2])
 
     x1, y1, x2, y2 = bb.get_absolute_bounding_box(BBFormat.XYX2Y2)
     x1 = int(x1)
     y1 = int(y1)
     x2 = int(x2)
     y2 = int(y2)
-    cv2.rectangle(image, (x1, y1), (x2, y2), (b, g, r), thickness)
+    cv2.rectangle(image, (x1, y1), (x2, y2), (b, g, r), box_thickness)
     # Add label
     if label is not None:
         # Get size of the text box
-        (tw, th) = cv2.getTextSize(label, font, fontScale, fontThickness)[0]
+        (tw, th) = cv2.getTextSize(label, text_font, text_fontscale, text_thickness)[0]
         # Top-left coord of the textbox
-        (xin_bb, yin_bb) = (x1 + thickness, y1 - th + int(12.5 * fontScale))
+        (xin_bb, yin_bb) = (x1 + text_thickness, y1 - th + int(12.5 * text_fontscale))
         # Checking position of the text top-left (outside or inside the bb)
         if yin_bb - th <= 0:  # if outside the image
             yin_bb = y1 + th  # put it inside the bb
-        r_Xin = x1 - int(thickness / 2)
-        r_Yin = y1 - th - int(thickness / 2)
+        r_Xin = x1 - int(text_thickness / 2)
+        r_Yin = y1 - th - int(text_thickness / 2)
+
+        """
         # Draw filled rectangle to put the text in it
         cv2.rectangle(image, (r_Xin, r_Yin - thickness),
-                      (r_Xin + tw + thickness * 3, r_Yin + th + int(12.5 * fontScale)), (b, g, r),
+                      (r_Xin + tw + thickness * 3, r_Yin + th + int(12.5 * text_fontscale)), (b, g, r),
                       -1)
-        cv2.putText(image, label, (xin_bb, yin_bb), font, fontScale, (0, 0, 0), fontThickness,
+        cv2.putText(image, label, (xin_bb, yin_bb), text_font, text_fontscale, (0, 0, 0), text_thickness,
+                    cv2.LINE_AA)
+        """
+        cv2.putText(image, label, (xin_bb, yin_bb), text_font, text_fontscale, text_color, text_thickness,
                     cv2.LINE_AA)
     return image
 
@@ -141,28 +151,51 @@ def remove_file_extension(filename):
     return os.path.join(os.path.dirname(filename), os.path.splitext(filename)[0])
 
 
-def image_to_pixmap(image):
+def image_to_pixmap(image, scaledToQsize):
     image = image.astype(np.uint8)
     if image.shape[2] == 4:
         qformat = QtGui.QImage.Format_RGBA8888
     else:
         qformat = QtGui.QImage.Format_RGB888
 
-    image = QtGui.QImage(image.data, image.shape[1], image.shape[0], image.strides[0], qformat)
-    # image= image.rgbSwapped()
-    return QtGui.QPixmap(image)
+    # --------------------------- [ zx update start ] -------------------------------
+    # image = QtGui.QImage(image.data, image.shape[1], image.shape[0], image.strides[0], qformat)
+    # image = image.scaled(scaledToQsize, QtCore.Qt.KeepAspectRatio) ## image= image.rgbSwapped()
+    # return QtGui.QPixmap(image).scaled(scaledToQsize, QtCore.Qt.KeepAspectRatio)
+    # -------------------------------------------------------------------------------
+    fw, fh = scaledToQsize.width(), scaledToQsize.height()
+    ih, iw = image.shape[0:2]
+    if float(fw)/fh <= float(iw)/ih:
+        dw = int(fw)
+        dh = int(dw / float(iw) * ih)
+    else:
+        dh = int(fh)
+        dw = int(dh / float(ih) * iw)
+
+    xoff = int((fw - dw)/2)
+    yoff = int((fh - dh) / 2)
+    nimg = np.zeros((fh, fw, image.shape[2]), dtype = np.uint8)
+
+    simg = cv2.resize(image, (dw, dh))
+    nimg[yoff:yoff+dh, xoff:xoff+dw, ...] = simg
+    fimg = QtGui.QImage(nimg.data, nimg.shape[1], nimg.shape[0], nimg.strides[0], qformat)
+    # --------------------------- [ zx update end ] -------------------------------
+
+    return QtGui.QPixmap(fimg)
 
 
 def show_image_in_qt_component(image, label_component):
-    pix = image_to_pixmap((image).astype(np.uint8))
+    pix = image_to_pixmap(image.astype(np.uint8), label_component.size())
+    label_component.setScaledContents(True)
     label_component.setPixmap(pix)
     label_component.setAlignment(QtCore.Qt.AlignCenter)
 
 
 def get_files_recursively(directory, extension="*"):
+    # for f in get_files_dir(directory, [extension]): print("zx ...", f)
     files = [
         os.path.join(dirpath, f) for dirpath, dirnames, files in os.walk(directory)
-        for f in get_files_dir(directory, [extension])
+        for f in get_files_dir(directory, [extension]) if os.path.isfile(os.path.join(dirpath, f))
     ]
     # Disconsider hidden files, such as .DS_Store in the MAC OS
     ret = [f for f in files if not os.path.basename(f).startswith('.')]
@@ -209,7 +242,13 @@ def get_image_resolution(image_file):
     if image_file is None or not os.path.isfile(image_file):
         print(f'Warning: Path {image_file} not found.')
         return None
-    img = cv2.imread(image_file)
+
+    # ---------------------------------------------------------------
+    # [20220502] zx modified below codes to support chinese-filepath image
+    # ---------------------------------------------------------------
+    # img = cv2.imread(image_file)
+    # ---------------------------------------------------------------
+    img = cv2.imdecode(np.fromfile(image_file, dtype=np.uint8), -1)  # use opencv read from image of chinese filepath
     if img is None:
         print(f'Warning: Error loading the image {image_file}.')
         return None
@@ -217,39 +256,54 @@ def get_image_resolution(image_file):
     return {'height': h, 'width': w}
 
 
-def draw_bb_into_image(image, boundingBox, color, thickness, label=None):
+def draw_bb_into_image(image, boundingBox,
+                       box_thickness=2,
+                       box_color = (255, 0, 0),
+                       text_font = cv2.FONT_HERSHEY_SIMPLEX,
+                       text_color = (255, 0, 0),
+                       text_thickness=1,
+                       text_fontscale = 0.3,
+                       label=None):
     if isinstance(image, str):
-        image = cv2.imread(image)
 
-    r = int(color[0])
-    g = int(color[1])
-    b = int(color[2])
+        # ---------------------------------------------------------------
+        # [20220502] zx modified below codes to support chinese-filepath image
+        # ---------------------------------------------------------------
+        # image = cv2.imread(image)
+        # ---------------------------------------------------------------
+        image = cv2.imdecode(np.fromfile(image, dtype=np.uint8), -1)  # use opencv read from image of chinese filepath
 
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    fontScale = 0.5
-    fontThickness = 1
+    r = int(box_color[0])
+    g = int(box_color[1])
+    b = int(box_color[2])
 
     xIn = boundingBox[0]
     yIn = boundingBox[1]
     cv2.rectangle(image, (boundingBox[0], boundingBox[1]), (boundingBox[2], boundingBox[3]),
-                  (b, g, r), thickness)
+                  (b, g, r), box_thickness)
     # Add label
     if label is not None:
         # Get size of the text box
-        (tw, th) = cv2.getTextSize(label, font, fontScale, fontThickness)[0]
+        (tw, th) = cv2.getTextSize(label, text_font, text_fontscale, text_thickness)[0]
         # Top-left coord of the textbox
-        (xin_bb, yin_bb) = (xIn + thickness, yIn - th + int(12.5 * fontScale))
+        (xin_bb, yin_bb) = (xIn + text_thickness, yIn - th + int(12.5 * text_fontscale))
         # Checking position of the text top-left (outside or inside the bb)
         if yin_bb - th <= 0:  # if outside the image
             yin_bb = yIn + th  # put it inside the bb
-        r_Xin = xIn - int(thickness / 2)
-        r_Yin = yin_bb - th - int(thickness / 2)
+        r_Xin = xIn - int(text_thickness / 2)
+        r_Yin = yin_bb - th - int(text_thickness / 2)
+
+        """"""
         # Draw filled rectangle to put the text in it
-        cv2.rectangle(image, (r_Xin, r_Yin - thickness),
-                      (r_Xin + tw + thickness * 3, r_Yin + th + int(12.5 * fontScale)), (b, g, r),
+        cv2.rectangle(image, (r_Xin, r_Yin - text_thickness),
+                      (r_Xin + tw + text_thickness * 3, r_Yin + th + int(12.5 * text_fontscale)), (b, g, r),
                       -1)
-        cv2.putText(image, label, (xin_bb, yin_bb), font, fontScale, (0, 0, 0), fontThickness,
+        cv2.putText(image, label, (xin_bb, yin_bb), text_font, text_fontscale, (0, 0, 0), text_thickness,
                     cv2.LINE_AA)
+        """"""
+
+        cv2.putText(image, label, (xin_bb, yin_bb), text_font, text_fontscale, text_color, text_thickness,
+                cv2.LINE_AA)
     return image
 
 

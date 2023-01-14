@@ -304,6 +304,23 @@ def is_coco_format(file_path):
         'annotations/image_id',
     ])
 
+def is_gdd_annojson_format(file_path):
+    """ Verify if a given file path represents a file with annotations in GDD annotation json format.
+
+    Parameters
+    ----------
+    file_path : str
+        Path of the file.
+
+    Returns
+    -------
+    bool
+        True if the file contains annotations in GDD annotation json format, False otherwise.
+    """
+    return is_json(file_path) and json_contains_tags(file_path, [
+        'annotations/bbox',
+        'annotations/image_id',
+    ])
 
 def is_cvat_format(file_path):
     """ Verify if a given file path represents a file with annotations in cvat format.

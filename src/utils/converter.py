@@ -8,7 +8,8 @@ import src.utils.general_utils as general_utils
 import src.utils.validations as validations
 from src.bounding_box import BoundingBox
 from src.utils.enumerators import BBFormat, BBType, CoordinatesType
-
+import numpy as np
+import cv2, copy
 
 def _get_annotation_files(file_path):
     # Path can be a directory containing all files or a directory containing multiple files
@@ -57,9 +58,12 @@ def coco2bb(path, bb_type=BBType.GROUND_TRUTH):
         for annotation in annotations:
             img_id = annotation['image_id']
             x1, y1, bb_width, bb_height = annotation['bbox']
+            if bb_width <= 0 or bb_height <= 0:
+                print('Warning: {img_id}: bbox ({x1}, {y1}, {bb_width}, {bb_height})(xywh) is invalid! Skip it!')
+                continue
             if bb_type == BBType.DETECTED and 'score' not in annotation.keys():
                 print('Warning: Confidence not found in the JSON file!')
-                return ret
+                return ret, classes
             confidence = annotation['score'] if bb_type == BBType.DETECTED else None
             # Make image name only the filename, without extension
             img_name = images[img_id]['file_name']
@@ -74,8 +78,78 @@ def coco2bb(path, bb_type=BBType.GROUND_TRUTH):
                              bb_type=bb_type,
                              format=BBFormat.XYWH)
             ret.append(bb)
-    return ret
+    return ret, classes
 
+def gddJson2bb(annoJsonPath, imgsFolder, bb_type=BBType.GROUND_TRUTH):
+    ret = []
+    classes = {}
+    # Get annotation files in the path
+    annotation_files = _get_annotation_files(annoJsonPath)
+    # Loop through each file
+    print("anno files: ", annotation_files)
+    for file_path in annotation_files:
+        print("anno file: ", file_path)
+        if not validations.is_gdd_annojson_format(file_path):
+            continue
+
+        with open(file_path, "r") as f:
+            json_object = json.load(f)
+
+
+        # GDD json file contains basically 3 lists:
+        # categories: containing the classes
+        # images: containing information of the images (filename)
+        # annotations: containing information of the bounding boxes (x1, y1, bb_width, bb_height)
+
+        if 'categories' in json_object:
+            classes = json_object['categories']
+            # into dictionary
+            classes = {c['id']: c['name'] for c in classes}
+        images = {}
+        # into dictionary
+        for i in json_object['images']:
+            imgFileFullpath = os.path.join(imgsFolder, i['file_name'])
+            try:
+                imd = cv2.imdecode(np.fromfile(imgFileFullpath, dtype=np.uint8),
+                               -1)  # use opencv read from image of chinese filepath
+                imh, imw = imd.shape[:2]
+            except Exception as e:
+                print("Warning:cannot open image {imgFileFullpath}! Use image size 2000x2000 instead!")
+                imh, imw = 2000, 2000
+
+            images[i['id']] = {
+                'file_name': i['file_name'],
+                'img_size': (int(imw), int(imh))
+            }
+        annotations = []
+        if 'annotations' in json_object:
+            annotations = json_object['annotations']
+
+        for annotation in annotations:
+            img_id = annotation['image_id']
+            x1, y1, bb_width, bb_height = annotation['bbox']
+            if bb_width <= 0 or bb_height <= 0:
+                print('Warning: {img_id}: bbox ({x1}, {y1}, {bb_width}, {bb_height})(xywh) is invalid! Skip it!')
+                continue
+            if bb_type == BBType.DETECTED and 'score' not in annotation.keys():
+                print('Warning: Confidence not found in the JSON file!')
+                return ret, classes
+
+            confidence = annotation['score'] if bb_type == BBType.DETECTED else None
+            # Make image name only the filename, without extension
+            img_name = images[img_id]['file_name']
+            img_name = general_utils.get_file_name_only(img_name)
+            # create BoundingBox object
+            bb = BoundingBox(image_name=img_name,
+                             class_id=classes[annotation['category_id']],
+                             coordinates=(x1, y1, bb_width, bb_height),
+                             type_coordinates=CoordinatesType.ABSOLUTE,
+                             img_size=images[img_id]['img_size'],
+                             confidence=confidence,
+                             bb_type=bb_type,
+                             format=BBFormat.XYWH)
+            ret.append(bb)
+    return ret, classes
 
 def cvat2bb(path):
     '''This format supports ground-truth only'''
@@ -100,6 +174,7 @@ def cvat2bb(path):
                         box_info.attrib['ybr'])
                 x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
+
                 bb = BoundingBox(image_name=img_name,
                                  class_id=box_info.attrib['label'],
                                  coordinates=(x1, y1, x2, y2),
@@ -108,7 +183,7 @@ def cvat2bb(path):
                                  bb_type=BBType.GROUND_TRUTH,
                                  format=BBFormat.XYX2Y2)
                 ret.append(bb)
-    return ret
+    return ret, None
 
 
 def openimage2bb(annotations_path, images_dir, bb_type=BBType.GROUND_TRUTH):
@@ -146,7 +221,7 @@ def openimage2bb(annotations_path, images_dir, bb_type=BBType.GROUND_TRUTH):
             confidence = None if pd.isna(row['Confidence']) else float(row['Confidence'])
             if bb_type == BBType.DETECTED and confidence is None:
                 print(f'Warning: Confidence value found in the CSV file for the image {img_name}')
-                return ret
+                return ret, None
             bb = BoundingBox(image_name=general_utils.get_file_name_only(row['ImageID']),
                              class_id=row['LabelName'],
                              coordinates=(x1, y1, x2, y2),
@@ -156,7 +231,7 @@ def openimage2bb(annotations_path, images_dir, bb_type=BBType.GROUND_TRUTH):
                              bb_type=bb_type,
                              format=BBFormat.XYX2Y2)
             ret.append(bb)
-    return ret
+    return ret, None
 
 
 def imagenet2bb(annotations_path):
@@ -188,7 +263,7 @@ def imagenet2bb(annotations_path):
                              bb_type=BBType.GROUND_TRUTH,
                              format=BBFormat.XYX2Y2)
             ret.append(bb)
-    return ret
+    return ret, None
 
 
 def vocpascal2bb(annotations_path):
@@ -230,7 +305,7 @@ def labelme2bb(annotations_path):
                                  bb_type=BBType.GROUND_TRUTH,
                                  format=BBFormat.XYX2Y2)
                 ret.append(bb)
-    return ret
+    return ret, None
 
 
 def text2bb(annotations_path,
@@ -271,7 +346,7 @@ def text2bb(annotations_path,
                     print(
                         f'Warning: Image not found in the directory {img_path}. It is required to get its dimensions'
                     )
-                    return ret
+                    return ret, None
                 resolution = general_utils.get_image_resolution(img_path)
                 img_size = (resolution['width'], resolution['height'])
             for line in f:
@@ -291,6 +366,10 @@ def text2bb(annotations_path,
                     y1 = float(splitted_line[3])
                     w = float(splitted_line[4])
                     h = float(splitted_line[5])
+
+                if w <= 0 or h <= 0:
+                    print('Warning: {img_path}: bbox ({x1}, {y1}, {w}, {h}) (xywh) is invalid! Skip it!')
+                    continue
                 bb = BoundingBox(image_name=img_filename,
                                  class_id=class_id,
                                  coordinates=(x1, y1, w, h),
@@ -305,14 +384,14 @@ def text2bb(annotations_path,
                 if x < 0 or y < 0 or w < 0 or h < 0 or x2 < 0 or y2 < 0:
                     continue
                 ret.append(bb)
-    return ret
+    return ret, None
 
 
 def yolo2bb(annotations_path, images_dir, file_obj_names, bb_type=BBType.GROUND_TRUTH):
     ret = []
     if not os.path.isfile(file_obj_names):
         print(f'Warning: File with names of classes {file_obj_names} not found.')
-        return ret
+        return ret, None
     # Load classes
     all_classes = []
     with open(file_obj_names, "r") as f:
@@ -340,13 +419,13 @@ def yolo2bb(annotations_path, images_dir, file_obj_names, bb_type=BBType.GROUND_
                 if not general_utils.is_str_int(class_id):
                     print(
                         f'Warning: Class id represented in the {file_path} is not a valid integer.')
-                    return []
+                    return [], None
                 class_id = int(class_id)
                 if class_id not in range(len(all_classes)):
                     print(
                         f'Warning: Class id represented in the {file_path} is not in the range of classes specified in the file {file_obj_names}.'
                     )
-                    return []
+                    return [], None
                 if bb_type == BBType.GROUND_TRUTH:
                     confidence = None
                     x1 = float(splitted_line[1])
@@ -359,6 +438,10 @@ def yolo2bb(annotations_path, images_dir, file_obj_names, bb_type=BBType.GROUND_
                     y1 = float(splitted_line[3])
                     w = float(splitted_line[4])
                     h = float(splitted_line[5])
+
+                if w <= 0 or h <= 0:
+                    print('Warning: {img_file}: bbox ({x1}, {y1}, {w}, {h}) (xywh) is invalid! Skip it!')
+                    continue
                 bb = BoundingBox(image_name=general_utils.get_file_name_only(img_file),
                                  class_id=all_classes[class_id],
                                  coordinates=(x1, y1, w, h),
@@ -368,7 +451,9 @@ def yolo2bb(annotations_path, images_dir, file_obj_names, bb_type=BBType.GROUND_
                                  bb_type=bb_type,
                                  format=BBFormat.YOLO)
                 ret.append(bb)
-    return ret
+
+    all_classes_dict = {k : k for i, k in enumerate(all_classes)}
+    return ret, all_classes_dict
 
 
 def xml2csv(xml_path):

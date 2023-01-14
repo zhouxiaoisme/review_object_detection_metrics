@@ -1,14 +1,18 @@
 import os
 import sys
 from collections import Counter
-
+from sys import path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from src.bounding_box import BoundingBox
 from src.utils.enumerators import (BBFormat, CoordinatesType,
                                    MethodAveragePrecision)
+from datetime import datetime as dt
 
+# ------------------ [ zx add start ] ------------------
+np.seterr(divide='ignore', invalid='ignore')
+# ------------------ [ zx add end ] ------------------
 
 def calculate_ap_every_point(rec, prec):
     mrec = []
@@ -190,6 +194,21 @@ def get_pascalvoc_metrics(gt_boxes,
         acc_TP = np.cumsum(TP)
         rec = acc_TP / npos
         prec = np.divide(acc_TP, (acc_FP + acc_TP))
+
+        # ---------------- [ zx add start] ---------------------------
+        f1score = 2*prec*rec/(prec+rec)
+        if (f1score.size > 0):
+            max_f1score = np.max(f1score)
+            max_index = np.where(f1score == max_f1score)
+            if (max_index[0].size == 0):
+                max_f1score_confThresh = -1
+            else:
+                max_f1score_confThresh = dects[max_index[0][0]].get_confidence()
+        else:
+            max_f1score = -1
+            max_f1score_confThresh = -1
+        # ---------------- [ zx add end] ---------------------------
+
         if generate_table:
             dict_table['acc TP'] = list(acc_TP)
             dict_table['acc FP'] = list(acc_FP)
@@ -210,6 +229,15 @@ def get_pascalvoc_metrics(gt_boxes,
             'precision': prec,
             'recall': rec,
             'AP': ap,
+
+            # ---------------------------- [ZX add START] ---------------------------
+            "confidence": [ det.get_confidence() for idx_det, det in enumerate(dects) ],
+            "f1score": f1score,
+            "max_f1score": max_f1score,
+            "max_f1score_conf": max_f1score_confThresh,
+            "iou_threshold": iou_threshold,
+            # ---------------------------- [ZX add END] ---------------------------
+
             'interpolated precision': mpre,
             'interpolated recall': mrec,
             'total positives': npos,
@@ -221,17 +249,20 @@ def get_pascalvoc_metrics(gt_boxes,
         }
     # For mAP, only the classes in the gt set should be considered
     mAP = sum([v['AP'] for k, v in ret.items() if k in gt_classes_only]) / len(gt_classes_only)
-    return {'per_class': ret, 'mAP': mAP}
+    return {'per_class': ret, 'mAP': mAP, "iou_threshold": iou_threshold}
 
 
 def plot_precision_recall_curve(results,
+                                iou_threshold,
                                 mAP=None,
+                                gt_version=None,
+                                det_version=None,
                                 showInterpolatedPrecision=False,
                                 savePath=None,
                                 showGraphic=True):
     result = None
     plt.close()
-    # Each resut represents a class
+    # Each result represents a class
     for classId, result in results.items():
         if result is None:
             raise IOError(f'Error: Class {classId} could not be found.')
@@ -261,11 +292,13 @@ def plot_precision_recall_curve(results,
     plt.ylabel('precision')
     plt.xlim([-0.1, 1.1])
     plt.ylim([-0.1, 1.1])
-    if mAP:
-        map_str = "{0:.2f}%".format(mAP * 100)
-        plt.title(f'Precision x Recall curve, mAP={map_str}')
-    else:
-        plt.title('Precision x Recall curve')
+
+
+    titlestr = 'All classes: Precision-Recall curve @ IOU {:.2f}\n'.format(iou_threshold)
+    if mAP: titlestr += 'AP: {:.3f}\n\n'.format(mAP)
+    titlestr += f"GroundTruth {gt_version}\nDetection {det_version}\n{dt.now().strftime('%Y-%m-%d %H:%M')}"
+    plt.title(titlestr)
+
     plt.legend(shadow=True)
     plt.grid()
     if savePath is not None:
@@ -278,22 +311,34 @@ def plot_precision_recall_curve(results,
 
 
 def plot_precision_recall_curves(results,
+                                 iou_threshold,
+                                 gt_version=None,
+                                 det_version=None,
                                  showAP=False,
                                  showInterpolatedPrecision=False,
                                  savePath=None,
-                                 showGraphic=True):
+                                 showGraphic=True,
+                                 showF1Score=True,
+                                 showConfidence=True
+                                    ):
     result = None
-    # Each resut represents a class
+    # Each result represents a class
     for classId, result in results.items():
         if result is None:
             raise IOError(f'Error: Class {classId} could not be found.')
 
         precision = result['precision']
         recall = result['recall']
-        average_precision = result['AP']
-        mpre = result['interpolated precision']
-        mrec = result['interpolated recall']
-        method = result['method']
+        average_precision = result.get('AP', -1.0)
+        mpre = result.get('interpolated precision', None)
+        mrec = result.get('interpolated recall', None)
+        method = result.get('method', None)
+
+        f1score = result.get('f1score', None)
+        confidence = result.get('confidence', None)
+        max_f1score = result.get('max_f1score', -1.0)
+        max_f1score_conf = result.get('max_f1score_conf', -1.0)
+
         plt.close()
         if showInterpolatedPrecision:
             if method == MethodAveragePrecision.EVERY_POINT_INTERPOLATION:
@@ -309,15 +354,29 @@ def plot_precision_recall_curves(results,
                         nrec.append(r)
                         nprec.append(max([mpre[int(id)] for id in idxEq]))
                 plt.plot(nrec, nprec, 'or', label='11-point interpolated precision')
-        plt.plot(recall, precision, label='Precision')
         plt.xlabel('recall')
-        plt.ylabel('precision')
-        if showAP:
-            ap_str = "{0:.2f}%".format(average_precision * 100)
-            # ap_str = "{0:.4f}%".format(average_precision * 100)
-            plt.title('Precision x Recall curve \nClass: %s, AP: %s' % (str(classId), ap_str))
-        else:
-            plt.title('Precision x Recall curve \nClass: %s' % str(classId))
+        plt.plot(recall, precision, label=f'{classId}: Precision-Recall')
+        ylabel = 'precision'
+        subject = 'PR'
+        if showF1Score:
+            ylabel += '/f1score'
+            subject += '/F1Score-R'
+        if showConfidence:
+            ylabel += '/confidence'
+            subject += '/Conf-R'
+        plt.ylabel(ylabel) #plt.ylabel('precision')
+
+        if showF1Score: plt.plot(recall, f1score, label=f'{classId}: f1score-Recall')
+        if showConfidence: plt.plot(recall, confidence, label=f'{classId}: confidence-Recall')
+
+        titlestr = 'class {}: {} curve @ IOU {:.2f}\n'.format(classId, subject, iou_threshold)
+        titlestr += 'maxF1Score: {:.2f}, '.format(max_f1score) if max_f1score is not None else 'maxF1Score: -, '
+        titlestr += 'maxF1Score_confThresh: {:.2f}, '.format(max_f1score_conf) if max_f1score_conf is not None else 'maxF1Score_confThresh: -, '
+        titlestr += 'AP: {:.3f}\n'.format(average_precision) if showAP else 'AP: -' # "{0:.2f}%".format(average_precision * 100)
+        titlestr += f"GroundTruth {gt_version}\nDetection {det_version}\n{dt.now().strftime('%Y-%m-%d %H:%M')}"
+        plt.title(titlestr, fontsize=12)
+        print(f"tilte = {titlestr}")
+
         plt.legend(shadow=True)
         plt.grid()
         ############################################################
@@ -380,3 +439,5 @@ def plot_precision_recall_curves(results,
             # plt.waitforbuttonpress()
             plt.pause(0.05)
     return results
+
+

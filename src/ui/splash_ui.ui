@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>Dialog</class>
  <widget class="QDialog" name="Dialog">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -28,17 +31,32 @@
   <property name="windowTitle">
    <string>Information</string>
   </property>
+  <property name="sizeGripEnabled">
+   <bool>false</bool>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
   <widget class="QLabel" name="lbl_groundtruth_dir_2">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>0</y>
-     <width>681</width>
+     <width>521</width>
      <height>201</height>
     </rect>
    </property>
+   <property name="frameShape">
+    <enum>QFrame::Box</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Raised</enum>
+   </property>
+   <property name="lineWidth">
+    <number>4</number>
+   </property>
    <property name="text">
-    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If you use this code for your research, please consider citing:&lt;br/&gt;&lt;br/&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;A Comparative Analysis of Object Detection Metrics with a Companion Open-Source Toolkit&lt;br/&gt;&lt;br/&gt;&lt;/span&gt;Authors: Rafael Padilla, Wesley L. Passos, Thadeu L. B. Dias, Sergio L. Netto, Eduardo A. B. da Silva&lt;br/&gt;Journal: Electronics V. 10&lt;br/&gt;Year: 2021&lt;br/&gt;ISSN: 2079-9292&lt;br/&gt;DOI: 10.3390/electronics10030279&lt;br/&gt;&lt;br/&gt;&lt;a href=&quot;https://github.com/rafaelpadilla/review_object_detection_metrics&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/rafaelpadilla/review_object_detection_metrics&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;1. Basic tool comes from&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;A Comparative Analysis of Object Detection Metrics with a Companion Open-Source Toolkit&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Authors: Rafael Padilla, Wesley L. Passos, Thadeu L. B. Dias, Sergio L. Netto, Eduardo A. B. da Silva. Journal: Electronics V. 10, Year: 2021, ISSN: 2079-9292, DOI: 10.3390/electronics10030279&lt;br/&gt;&lt;/span&gt;&lt;a href=&quot;https://github.com/rafaelpadilla/review_object_detection_metrics&quot;&gt;&lt;span style=&quot; font-size:8pt; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/rafaelpadilla/review_object_detection_metrics&lt;br/&gt;&lt;/span&gt;&lt;/a&gt;&lt;a href=&quot;https://github.com/rafaelpadilla/review_object_detection_metrics&quot;&gt;&lt;span style=&quot; font-size:8pt; color:#000000;&quot;&gt;2.[20220502] ZX update this tool to add f1score, maxf1score, maxf1score_confidenceThresh results output and display them also in P-R curve, besides, support ourself annotation format(similiar with COCO V1 format, but no image width, height info under images node.&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
    </property>
    <property name="wordWrap">
     <bool>true</bool>
@@ -47,14 +65,17 @@
   <widget class="QPushButton" name="btn_Close">
    <property name="geometry">
     <rect>
-     <x>530</x>
-     <y>170</y>
-     <width>141</width>
-     <height>27</height>
+     <x>550</x>
+     <y>110</y>
+     <width>111</width>
+     <height>81</height>
     </rect>
    </property>
    <property name="toolTip">
     <string>The configurations will be applied in a random ground truth image.</string>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(0, 255, 0);</string>
    </property>
    <property name="text">
     <string>Close</string>

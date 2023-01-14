@@ -10,6 +10,7 @@
     <img src="https://img.shields.io/badge/DOI-10.3390%2Felectronics10030279-gray"/></a>
 </p>
 
+
 ## Citation
 
 This work was published in the [Journal Electronics - Special Issue Deep Learning Based Object Detection](https://www.mdpi.com/2079-9292/10/3/279). 
@@ -32,6 +33,34 @@ DOI = {10.3390/electronics10030279}
 ```
 Download the paper [here](https://www.mdpi.com/2079-9292/10/3/279/pdf) or [here](https://github.com/rafaelpadilla/review_object_detection_metrics/blob/main/published_paper.pdf).
 
+Functionality
+================================================
+- main window
+![](docs/mainwindow_ui.png)
+- gt statistics
+![](docs/gt_statistics_ui.png)
+- det statistics
+![](docs/det_statistics_ui.png)
+- bb_per_class statistics
+![](docs/bb_per_class_statistics_ui.png)
+- Objdet performance evaluation result
+![](docs/metrics_evalresult_ui.png)
+- Plot objdet confusion matrix
+![](docs/objdet_confusematrix_ui.png)
+- plot repo's data 
+![](docs/plot_repo_prcurve_ui.png)
+- information<br>
+![](docs/information_ui.png)
+
+
+ChangeLog
+================================================
+- 2022-05-12, zx
+  - 支持将多次PR(PASCAL VOC)评测结果汇总绘制到同一个P-R曲线图中
+- 2022-05-10, zx
+  - 支持Object detection confusion matrix plot功能
+- 2022-05-02, zx
+  - 增加对GDD标注模型(和COCO V1格式相似，但是在images节点下没有图片宽高信息
 
 Open-Source Visual Interface for Object Detection Metrics
 ================================================
@@ -45,7 +74,8 @@ Ideally, in order to have trustworthy benchmarking among different approaches, i
 
 
 ## Table of contents
-
+- [Functionality](#Functionality)
+- [Changelog](#Changelog)
 - [Open-Source Toolbox for Object Detection Metrics](#open-source-toolbox-for-object-detection-metrics)
   - [Table of contents](#table-of-contents)
   - [Supported bounding box formats](#supported-bounding-box-formats)

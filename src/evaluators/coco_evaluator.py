@@ -82,7 +82,7 @@ def get_coco_summary(groundtruth_bbs, detected_bbs):
             ev = _evals[class_id]
             res.append({
                 "class": class_id,
-                **_compute_ap_recall(ev["scores"], ev["matched"], ev["NP"]),
+                **_compute_ap_recall(ev["scores"], ev["matched"], ev["NP"], iou_threshold),
             })
         return res
 
@@ -214,7 +214,7 @@ def get_coco_metrics(
     _ious = {k: _compute_ious(**v) for k, v in _bbs.items()}
 
     # accumulate evaluations on a per-class basis
-    _evals = defaultdict(lambda: {"scores": [], "matched": [], "NP": []})
+    _evals = defaultdict(lambda: {"scores": [], "matched": [], "NP": [], "iou_threshold":iou_threshold})
 
     for img_id, class_id in _bbs:
         ev = _evaluate_image(
@@ -237,13 +237,13 @@ def get_coco_metrics(
         acc["matched"] = np.concatenate(acc["matched"]).astype(np.bool)
         acc["NP"] = np.sum(acc["NP"])
 
-    res = {}
+    res = {'iou_threshold':iou_threshold}
     # run ap calculation per-class
     for class_id in _evals:
         ev = _evals[class_id]
         res[class_id] = {
             "class": class_id,
-            **_compute_ap_recall(ev["scores"], ev["matched"], ev["NP"])
+            **_compute_ap_recall(ev["scores"], ev["matched"], ev["NP"], iou_threshold)
         }
     return res
 
@@ -359,7 +359,7 @@ def _evaluate_image(dt, gt, ious, iou_threshold, max_dets=None, area_range=None)
     return {"scores": scores, "matched": matched, "NP": n_gts}
 
 
-def _compute_ap_recall(scores, matched, NP, recall_thresholds=None):
+def _compute_ap_recall(scores, matched, NP, iou_threshold, recall_thresholds=None):
     """ This curve tracing method has some quirks that do not appear when only unique confidence thresholds
     are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced. """
     if NP == 0:
@@ -367,6 +367,14 @@ def _compute_ap_recall(scores, matched, NP, recall_thresholds=None):
             "precision": None,
             "recall": None,
             "AP": None,
+            # ---------------------------- [ZX add START] ---------------------------
+            "confidence": None,
+            "f1score": None,
+            "max_f1score": None,
+            "max_f1score_conf": None,
+            "iou_threshold" : iou_threshold,
+            # ---------------------------- [ZX add END] ---------------------------
+
             "interpolated precision": None,
             "interpolated recall": None,
             "total positives": None,
@@ -393,6 +401,20 @@ def _compute_ap_recall(scores, matched, NP, recall_thresholds=None):
     rc = tp / NP
     pr = tp / (tp + fp)
 
+    # ---------------- [ zx add start] ---------------------------
+    f1score = 2*rc*pr/(rc+pr)
+    if(f1score.size == 0):
+        max_f1score = -1
+        max_f1score_confThresh = -1
+    else:
+        max_f1score = np.max(f1score)
+        max_idx = np.where(f1score == max_f1score)
+        if(len(max_idx) == 0):
+            max_f1score_confThresh = 0.0
+        else:
+            max_f1score_confThresh = scores[max_idx[0]]
+    # ---------------- [ zx add start] ---------------------------
+
     # make precision monotonically decreasing
     i_pr = np.maximum.accumulate(pr[::-1])[::-1]
 
@@ -405,6 +427,15 @@ def _compute_ap_recall(scores, matched, NP, recall_thresholds=None):
     return {
         "precision": pr,
         "recall": rc,
+
+        # ---------------------------- [ZX add START] ---------------------------
+        "confidence" : scores,
+        "f1score": f1score,
+        "max_f1score":max_f1score,
+        "max_f1score_conf" : max_f1score_confThresh,
+        "iou_threshold": iou_threshold,
+        # ---------------------------- [ZX add END] ---------------------------
+
         "AP": np.mean(i_pr),
         "interpolated precision": i_pr,
         "interpolated recall": recall_thresholds,
